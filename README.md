@@ -1,4 +1,4 @@
-Change the output in sync-comments.py or sync-comments-full.py to [your-site]/input/media/files/comments. 
+Change the input and output in sync-comments.py or sync-comments-full.py to your database path and [your-site]/input/media/files/comments. 
 
 Update your theme using an override to add the mastodonId field, and then add mastodon Id for all your pots that have a post. 
 Make sure to change the instance and usernames to your own. Mine are left in as "sakurajima.moe" and "navi".
