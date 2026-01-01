@@ -12,7 +12,7 @@ INSTANCE = 'sakurajima.moe'
 # =================================================
 
 # Add your token at the top
-ACCESS_TOKEN = 'B3UjqntrooFW-QTGlrQ957YcDbrNyrtcIQMjM77oU4U'
+ACCESS_TOKEN = 'MASTODON ACCESS TOKEN HERE'
 
 def fetch_comments_with_stats(status_id):
     headers = {
@@ -102,4 +102,5 @@ def sync_mastodon_comments():
             os.remove(temp_db)
 
 if __name__ == "__main__":
+
     sync_mastodon_comments()
