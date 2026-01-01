@@ -6,10 +6,10 @@ import shutil
 import time
 
 # ================= CONFIGURATION =================
-DB_PATH = r'C:\Users\Naive\Documents\Publii\sites\navis-ranobe-blog\input\db.sqlite'
-OUTPUT_DIR = r'C:\Users\Naive\Documents\Publii\sites\navis-ranobe-blog\input\media\files\comments'
-INSTANCE = 'sakurajima.moe'
-# =================================================
+DB_PATH = r'C:\restofthepath\Publii\sites\YOURSITE\input\db.sqlite'
+OUTPUT_DIR = r'C:\restofthepath\Publii\sites\YOURSITE\input\media\files\comments'
+INSTANCE = 'sakurajima.moe' 
+# ================================================= REPLACE INSTANCE WITH YOUR OWN
 
 # Add your token at the top
 ACCESS_TOKEN = 'MASTODON ACCESS TOKEN HERE'
@@ -104,3 +104,4 @@ def sync_mastodon_comments():
 if __name__ == "__main__":
 
     sync_mastodon_comments()
+
