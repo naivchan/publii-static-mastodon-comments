@@ -10,8 +10,7 @@ DB_PATH = r'C:\Users\Naive\Documents\Publii\sites\navis-ranobe-blog\input\db.sql
 OUTPUT_DIR = r'C:\Users\Naive\Documents\Publii\sites\navis-ranobe-blog\input\media\files\comments'
 INSTANCE = 'sakurajima.moe'
 
-# Your Access Token (Cleaned to avoid "Bearer Bearer" issue)
-ACCESS_TOKEN = 'B3UjqntrooFW-QTGlrQ957YcDbrNyrtcIQMjM77oU4U'
+ACCESS_TOKEN = 'MASTODON ACCESS TOKEN HERE'
 # =================================================
 
 def fetch_comments_with_stats(status_id):
@@ -104,4 +103,5 @@ def sync_mastodon_comments():
             os.remove(temp_db)
 
 if __name__ == "__main__":
+
     sync_mastodon_comments()
