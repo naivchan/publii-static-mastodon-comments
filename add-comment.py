@@ -4,7 +4,7 @@ from datetime import datetime
 
 # ================= CONFIGURATION =================
 # Same directory as your Mastodon JSONs
-COMMENTS_DIR = r'C:\Users\Naive\Documents\Publii\sites\navis-ranobe-blog\input\media\files\comments'
+COMMENTS_DIR = r'C:\Users\[PC User Name]\Documents\Publii\sites\[your-site]\input\media\files\comments'
 # =================================================
 
 def add_manual_comment():
@@ -50,4 +50,5 @@ def add_manual_comment():
     print(f"\n[✔] Added! Saved to {m_id}-manual.json")
 
 if __name__ == "__main__":
+
     add_manual_comment()
