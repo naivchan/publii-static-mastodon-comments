@@ -356,112 +356,100 @@
 			}
     </style>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Use a safe check for the Mastodon ID
-        const mIdRaw = "{{@config.post.mastodonId}}";
-        const mId = (mIdRaw && mIdRaw !== "undefined" && mIdRaw !== "[object Object]") ? mIdRaw : null;
-        const wrapper = document.getElementById('masto-comments-section');
+   <script>
+document.addEventListener("DOMContentLoaded", function() {
+    const mIdRaw = "{{@config.post.mastodonId}}";
+    const mId = (mIdRaw && mIdRaw !== "undefined" && mIdRaw !== "[object Object]") ? mIdRaw : null;
+    const wrapper = document.getElementById('masto-comments-section');
 
-        if (mId && mId.trim().length > 0) {
-            fetch(`/media/files/comments/${mId}.json`)
-                .then(response => {
-                    if (!response.ok) throw new Error('File not found');
-                    return response.json();
-                })
-                .then(data => {
-                    const container = document.getElementById('mastodon-comments-list');
-                    if (!container) return;
+    if (mId && mId.trim().length > 0) {
+        // Prepare to fetch both files
+        const mastoUrl = `/media/files/comments/${mId}.json`;
+        const manualUrl = `/media/files/comments/${mId}-manual.json`;
 
-                    // 1. Update Stats Bar
-                    const statsBar = document.getElementById('masto-stats');
-                    if (statsBar) {
-                        document.getElementById('masto-replies-count').innerText = data.replies_count || 0;
-                        document.getElementById('masto-boosts-count').innerText = data.reblogs_count || 0;
-                        document.getElementById('masto-favs-count').innerText = data.favourites_count || 0;
-                        statsBar.style.display = 'flex';
-                    }
+        // Fetch both (using allSettled so it doesn't crash if manual file is missing)
+        Promise.allSettled([
+            fetch(mastoUrl).then(r => r.ok ? r.json() : { descendants: [] }),
+            fetch(manualUrl).then(r => r.ok ? r.json() : { descendants: [] })
+        ]).then(results => {
+            const mastoData = results[0].status === 'fulfilled' ? results[0].value : {};
+            const manualData = results[1].status === 'fulfilled' ? results[1].value : { descendants: [] };
 
-                    // 2. Update Join Button
-                    const joinLinkContainer = document.getElementById('masto-join-link');
-                    const mastoAnchor = document.getElementById('masto-url');
-                    if (joinLinkContainer && mastoAnchor) {
-                        mastoAnchor.href = data.url || `https://sakurajima.moe/statuses/${mId}`;
-                        joinLinkContainer.style.display = 'block';
-                    }
+            const container = document.getElementById('mastodon-comments-list');
+            
+            // 1. Stats Bar (Mastodon only)
+            const statsBar = document.getElementById('masto-stats');
+            if (statsBar && mastoData.url) {
+                document.getElementById('masto-replies-count').innerText = mastoData.replies_count || 0;
+                document.getElementById('masto-boosts-count').innerText = mastoData.reblogs_count || 0;
+                document.getElementById('masto-favs-count').innerText = mastoData.favourites_count || 0;
+                statsBar.style.display = 'flex';
+            }
 
-                    // 3. Threading Logic
-                    const replies = data.descendants || [];
-                    const commentMap = {};
-                    replies.forEach(r => {
-                        commentMap[r.id] = { ...r, children: [] };
-                    });
+            // 2. Combine all comments
+            const allReplies = [
+                ...(mastoData.descendants || []),
+                ...(manualData.descendants || [])
+            ];
 
-                    const threaded = [];
-                    replies.forEach(r => {
-                        if (r.in_reply_to_id && commentMap[r.in_reply_to_id]) {
-                            commentMap[r.in_reply_to_id].children.push(commentMap[r.id]);
-                        } else {
-                            threaded.push(commentMap[r.id]);
-                        }
-                    });
+            // 3. Threading & Rendering
+            const commentMap = {};
+            allReplies.forEach(r => {
+                commentMap[r.id] = { ...r, children: [] };
+            });
 
-                    // 4. Render Function
-                    function render(comment, depth = 0) {
-                        const commentDate = new Date(comment.created_at).toLocaleString(undefined, {
-                            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                        });
+            const threaded = [];
+            allReplies.forEach(r => {
+                if (r.in_reply_to_id && commentMap[r.in_reply_to_id]) {
+                    commentMap[r.in_reply_to_id].children.push(commentMap[r.id]);
+                } else {
+                    threaded.push(commentMap[r.id]);
+                }
+            });
 
-                        const indentClass = depth > 0 ? `masto-indent-${Math.min(depth, 3)}` : '';
-                        const isAuthor = comment.account.acct.toLowerCase().includes('navi');
-                        const authorBadge = isAuthor ? `<span class="masto-badge">Author</span>` : '';
+            // Sort top-level comments by date
+            threaded.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-                        return `
-                            <div class="masto-comment ${indentClass} ${isAuthor ? 'masto-owner' : ''}">
-                                <div class="masto-comment-header">
-                                    <a href="${comment.account.url}" target="_blank" rel="nofollow">
-                                        <img src="${comment.account.avatar}" referrerpolicy="no-referrer" class="masto-avatar">
-                                    </a>
-                                    <div class="masto-meta">
-                                        <div class="masto-author-row">
-                                            <a href="${comment.account.url}" target="_blank" rel="nofollow" class="masto-author-link">
-                                                <span class="masto-author">${comment.account.display_name}</span>
-                                            </a>
-                                            ${authorBadge}
-                                        </div>
-                                        <span class="masto-handle">
-                                            @${comment.account.acct} • 
-                                            <a href="${comment.url}" target="_blank" rel="nofollow" class="masto-date-link">
-                                                <span class="masto-date">${commentDate}</span>
-                                            </a>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="masto-content">${comment.content}</div>
-                                ${comment.media_attachments && comment.media_attachments.length > 0 ? `
-                                    <div class="masto-attachments">
-                                        ${comment.media_attachments.map(att => att.type === 'image' ? `
-                                            <a href="${att.url}" target="_blank" class="masto-img-link">
-                                                <img src="${att.preview_url}" alt="${att.description || ''}" title="${att.description || ''}" class="masto-attached-img">
-                                            </a>` : '').join('')}
-                                    </div>` : ''}
-                            </div>
-                            ${comment.children.map(child => render(child, depth + 1)).join('')}
-                        `;
-                    }
-
-                    container.innerHTML = threaded.length > 0 ? threaded.map(c => render(c)).join('') : '<p>No comments yet.</p>';
-                })
-                .catch(err => {
-                    console.error("Mastodon Load Error:", err);
-                    document.getElementById('mastodon-comments-list').innerHTML = '<p>No comments yet.</p>';
+            function render(comment, depth = 0) {
+                const commentDate = new Date(comment.created_at).toLocaleString(undefined, {
+                    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
-        } else {
-            // Hide the entire section if no Mastodon ID is provided
-            if (wrapper) wrapper.style.display = 'none';
-        }
-    });
-    </script>
+                const indentClass = depth > 0 ? `masto-indent-${Math.min(depth, 3)}` : '';
+                const isAuthor = comment.account.acct.toLowerCase().includes('navi');
+                const isManual = comment.id.toString().startsWith('manual-');
+
+                return `
+                    <div class="masto-comment ${indentClass} ${isAuthor ? 'masto-owner' : ''}">
+                        <div class="masto-comment-header">
+                            <img src="${comment.account.avatar}" class="masto-avatar">
+                            <div class="masto-meta">
+                                <div class="masto-author-row">
+                                    <span class="masto-author">${comment.account.display_name}</span>
+                                    ${isAuthor ? '<span class="masto-badge">Author</span>' : ''}
+                                    ${isManual ? '<span class="masto-badge" style="background:#444">Manual</span>' : ''}
+                                </div>
+                                <span class="masto-handle">
+                                    @${comment.account.acct} • <span class="masto-date">${commentDate}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="masto-content">${comment.content}</div>
+                    </div>
+                    ${comment.children.map(child => render(child, depth + 1)).join('')}
+                `;
+            }
+
+            container.innerHTML = threaded.length > 0 ? threaded.map(c => render(c)).join('') : '<p>No comments yet.</p>';
+            
+            // Show join link
+            document.getElementById('masto-join-link').style.display = 'block';
+            document.getElementById('masto-url').href = mastoData.url || "#";
+        });
+    } else {
+        if (wrapper) wrapper.style.display = 'none';
+    }
+});
+</script>
 </section>
 
 // THIS IS WHERE THE PUBLII MASTODON STATIC COMMENTS STUFF ENDS.
