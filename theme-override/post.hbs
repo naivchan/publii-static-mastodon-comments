@@ -210,6 +210,8 @@
                 Join the conversation on Mastodon
             </a> or send me a comment <a href="https://pomnavi.net/#contact">here</a></p>
         </div>
+		
+		<p></p>
         
         <div id="masto-stats" style="margin-bottom: 25px; display: none; gap: 20px; font-size: 0.9rem; color: #666; align-items: center;">
             <span class="masto-stat-item">
@@ -356,7 +358,7 @@
 			}
     </style>
 
-   <script>
+    <script>
 document.addEventListener("DOMContentLoaded", function() {
     const mIdRaw = "{{@config.post.mastodonId}}";
     const mId = (mIdRaw && mIdRaw !== "undefined" && mIdRaw !== "[object Object]") ? mIdRaw : null;
@@ -410,34 +412,57 @@ document.addEventListener("DOMContentLoaded", function() {
             // Sort top-level comments by date
             threaded.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-            function render(comment, depth = 0) {
-                const commentDate = new Date(comment.created_at).toLocaleString(undefined, {
-                    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
-                const indentClass = depth > 0 ? `masto-indent-${Math.min(depth, 3)}` : '';
-                const isAuthor = comment.account.acct.toLowerCase().includes('navi');
-                const isManual = comment.id.toString().startsWith('manual-');
+            // 4. Render Function
+                function render(comment, depth = 0) {
+                    const commentDate = new Date(comment.created_at).toLocaleString(undefined, {
+                        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                    const indentClass = depth > 0 ? `masto-indent-${Math.min(depth, 3)}` : '';
+                    
+                    const acct = (comment.account.acct || "").toLowerCase();
+                    const isAuthor = acct.includes('navi');
+                    const isManual = comment.id.toString().startsWith('manual-');
+                    const profileUrl = comment.account.url;
 
-                return `
-                    <div class="masto-comment ${indentClass} ${isAuthor ? 'masto-owner' : ''}">
-                        <div class="masto-comment-header">
-                            <img src="${comment.account.avatar}" class="masto-avatar">
-                            <div class="masto-meta">
-                                <div class="masto-author-row">
-                                    <span class="masto-author">${comment.account.display_name}</span>
-                                    ${isAuthor ? '<span class="masto-badge">Author</span>' : ''}
-                                    ${isManual ? '<span class="masto-badge" style="background:#444">Manual</span>' : ''}
+                    // Restore Name Link (if URL exists)
+                    const nameHtml = (profileUrl && profileUrl !== "#")
+                        ? `<a href="${profileUrl}" target="_blank" rel="nofollow" class="masto-author-link"><span class="masto-author">${comment.account.display_name}</span></a>`
+                        : `<span class="masto-author">${comment.account.display_name}</span>`;
+
+                    // Restore Date Link (if URL exists)
+                    const dateHtml = comment.url 
+                        ? `<a href="${comment.url}" target="_blank" rel="nofollow" class="masto-date-link"><span class="masto-date">${commentDate}</span></a>`
+                        : `<span class="masto-date">${commentDate}</span>`;
+
+                    return `
+                        <div class="masto-comment ${indentClass} ${isAuthor ? 'masto-owner' : ''}">
+                            <div class="masto-comment-header">
+                                ${profileUrl && profileUrl !== "#" ? `<a href="${profileUrl}" target="_blank" rel="nofollow">` : ''}
+                                    <img src="${comment.account.avatar}" class="masto-avatar" referrerpolicy="no-referrer">
+                                ${profileUrl && profileUrl !== "#" ? `</a>` : ''}
+                                <div class="masto-meta">
+                                    <div class="masto-author-row">
+                                        ${nameHtml}
+                                        ${isAuthor ? '<span class="masto-badge">Author</span>' : ''}
+                                        ${isManual ? '<span class="masto-badge" style="background:#666">Manual</span>' : ''}
+                                    </div>
+                                    <span class="masto-handle">
+                                        @${comment.account.acct} • ${dateHtml}
+                                    </span>
                                 </div>
-                                <span class="masto-handle">
-                                    @${comment.account.acct} • <span class="masto-date">${commentDate}</span>
-                                </span>
                             </div>
+                            <div class="masto-content">${comment.content}</div>
+                            ${comment.media_attachments && comment.media_attachments.length > 0 ? `
+                                <div class="masto-attachments">
+                                    ${comment.media_attachments.map(att => att.type === 'image' ? `
+                                        <a href="${att.url}" target="_blank" class="masto-img-link">
+                                            <img src="${att.preview_url}" class="masto-attached-img">
+                                        </a>` : '').join('')}
+                                </div>` : ''}
                         </div>
-                        <div class="masto-content">${comment.content}</div>
-                    </div>
-                    ${comment.children.map(child => render(child, depth + 1)).join('')}
-                `;
-            }
+                        ${comment.children.map(child => render(child, depth + 1)).join('')}
+                    `;
+                }
 
             container.innerHTML = threaded.length > 0 ? threaded.map(c => render(c)).join('') : '<p>No comments yet.</p>';
             
