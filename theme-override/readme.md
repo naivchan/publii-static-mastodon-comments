@@ -2,14 +2,15 @@ This is where you upload these files to your theme override. You need to update 
 
 Make sure to add this to your theme override under postConfig:
 
-<code>{ 
+```
+{ 
   "name": "mastodonId",
   "label": "Mastodon Post ID",
   "value": "",
   "type": "text",
   "note": "Enter the numeric ID of the Mastodon post for comments."
         }, 
-</code>
+```
 
 
 This theme override is for Publii's Mercury Theme
